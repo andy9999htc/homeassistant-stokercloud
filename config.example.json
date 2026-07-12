@@ -1,0 +1,6 @@
+{
+  "username": "your_stokercloud_username",
+  "password": "your_stokercloud_password",
+  "api_variant": "v16bck",
+  "screen": "b1,0,b2,5,b3,4,b4,6,b5,12,b6,14,b7,15,b8,16,b9,9,b10,0,d1,0,d2,4,d3,0,d4,0,d5,0,d6,0,d7,0,d8,0,d9,0,d10,0,h1,2,h2,3,h3,4,h4,7,h5,8,h6,14,h7,0,h8,0,h9,0,h10,0,w1,2,w2,3,w3,9,w4,0,w5,0"
+}

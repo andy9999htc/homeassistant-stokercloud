@@ -102,12 +102,12 @@ class IntegrationNumber(CoordinatorEntity, NumberEntity, RestoreEntity):
         # send value to device / API here
 
         if not self.entity_description.key.startswith("internal"):
-            retval = await self.coordinator._api.update_controller_value(
+            updated_value = await self.coordinator._api.update_controller_value(
                 self.entity_description.updateParams[0],
                 self.entity_description.updateParams[1],
                 value,
             )
-            self._attr_native_value = retval.value
+            self._attr_native_value = float(updated_value)
         else:
             self._attr_native_value = value
             self.coordinator.data[self.entity_description.key] = value
@@ -143,7 +143,7 @@ class IntegrationNumber(CoordinatorEntity, NumberEntity, RestoreEntity):
 
 NUMBER_SENSORS: tuple[IntegrationNumberEntityDescription, ...] = (
     IntegrationNumberEntityDescription(
-        key="frontdata_0_value",
+        key="frontdata_hoppercontent_value",
         name="Hopper content",
         icon="mdi:information",
         native_min_value=0,
@@ -168,5 +168,18 @@ NUMBER_SENSORS: tuple[IntegrationNumberEntityDescription, ...] = (
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         value=lambda data, key: data[key],
         updateParams=["internal", "pellet.energy_per_kg"],
+    ),
+    IntegrationNumberEntityDescription(
+        key="frontdata_wantedboilertemp_value",
+        name="Boiler Temperature Setpoint",
+        icon="mdi:thermometer-chevron-up",
+        native_min_value=40,
+        native_max_value=95,
+        native_step=1,
+        mode=NumberMode.BOX,
+        device_class=NumberDeviceClass.TEMPERATURE,
+        native_unit_of_measurement="°C",
+        value=lambda data, key: data[key],
+        updateParams=["boiler.temp", "boiler.temp"],
     ),
 )

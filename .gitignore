@@ -1,1 +1,4 @@
 /custom_components/stokercloud/__pycache__
+fhem_stokercloud_httpmod.txt
+tests/__pycache__/
+__pycache__/

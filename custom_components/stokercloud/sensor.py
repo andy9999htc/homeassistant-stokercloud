@@ -21,7 +21,7 @@ from homeassistant.core import callback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import IntegrationCoordinator, IntegrationSensorEntityDescription
-from .const import DOMAIN, MANUFACTURER, MODEL, STATE_STATE
+from .const import DOMAIN, LNG_STATE_MAP, MANUFACTURER, MODEL, STATE_STATE
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -101,7 +101,14 @@ class StokerCloudSensor(CoordinatorEntity, SensorEntity):
             val = self.coordinator.data[self.entity_description.key]
 
             if "state" in self.entity_description.key:
-                self._attr_native_value = STATE_STATE[val][0]
+                if isinstance(val, str) and val in LNG_STATE_MAP:
+                    self._attr_native_value = LNG_STATE_MAP[val]
+                else:
+                    normalized_state = val
+                    if isinstance(val, str) and val.startswith("lng_state_"):
+                        state_code = val.split("lng_state_", 1)[1]
+                        normalized_state = f"state_{state_code}"
+                    self._attr_native_value = STATE_STATE.get(normalized_state, [val, "mdi:information"])[0]
             else:
                 self._attr_native_value = val
 
@@ -119,7 +126,7 @@ class StokerCloudSensor(CoordinatorEntity, SensorEntity):
 
 SENSORS_BOILER: tuple[IntegrationSensorEntityDescription, ...] = (
     IntegrationSensorEntityDescription(
-        key="frontdata_1_value",
+        key="frontdata_boilertemp_value",
         name="Boiler Temperature",
         icon="mdi:thermometer",
         device_class=SensorDeviceClass.TEMPERATURE,
@@ -127,7 +134,7 @@ SENSORS_BOILER: tuple[IntegrationSensorEntityDescription, ...] = (
         value=lambda data, key: data[key],
     ),
     IntegrationSensorEntityDescription(
-        key="frontdata_2_value",
+        key="frontdata_wantedboilertemp_value",
         name="Boiler Temperature Requested",
         icon="mdi:thermometer-chevron-up",
         device_class=SensorDeviceClass.TEMPERATURE,
@@ -151,7 +158,7 @@ SENSORS_BOILER: tuple[IntegrationSensorEntityDescription, ...] = (
         value=lambda data, key: data[key],
     ),
     IntegrationSensorEntityDescription(
-        key="frontdata_3_value",
+        key="frontdata_dhw_value",
         name="Current Water Heater Temperature",
         icon="mdi:thermometer",
         device_class=SensorDeviceClass.TEMPERATURE,
@@ -159,7 +166,7 @@ SENSORS_BOILER: tuple[IntegrationSensorEntityDescription, ...] = (
         value=lambda data, key: data[key],
     ),
     IntegrationSensorEntityDescription(
-        key="frontdata_4_value",
+        key="frontdata_dhwwanted_value",
         name="Requested Water Heater Temperature",
         icon="mdi:thermometer-chevron-up",
         device_class=SensorDeviceClass.TEMPERATURE,
@@ -244,6 +251,78 @@ SENSORS_BOILER: tuple[IntegrationSensorEntityDescription, ...] = (
         icon="mdi:information",
         device_class=None,
         native_unit_of_measurement=None,
+        value=lambda data, key: data[key],
+    ),
+    IntegrationSensorEntityDescription(
+        key="frontdata_smoketemp_value",
+        name="Flue Gas Temperature",
+        icon="mdi:thermometer-lines",
+        device_class=SensorDeviceClass.TEMPERATURE,
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        value=lambda data, key: data[key],
+    ),
+    IntegrationSensorEntityDescription(
+        key="frontdata_ashdist_value",
+        name="Ash Box Fill Level",
+        icon="mdi:trash-can-outline",
+        device_class=SensorDeviceClass.POWER_FACTOR,
+        native_unit_of_measurement=PERCENTAGE,
+        value=lambda data, key: data[key],
+    ),
+    IntegrationSensorEntityDescription(
+        key="hopperdata_14_value",
+        name="Pellet Fill Level",
+        icon="mdi:sack",
+        device_class=SensorDeviceClass.POWER_FACTOR,
+        native_unit_of_measurement=PERCENTAGE,
+        value=lambda data, key: data[key],
+    ),
+    IntegrationSensorEntityDescription(
+        key="frontdata_byid_oxygen_value",
+        name="Oxygen",
+        icon="mdi:molecule",
+        device_class=SensorDeviceClass.POWER_FACTOR,
+        native_unit_of_measurement=PERCENTAGE,
+        value=lambda data, key: data[key],
+    ),
+    IntegrationSensorEntityDescription(
+        key="frontdata_byid_pressure_value",
+        name="Furnace Pressure",
+        icon="mdi:gauge",
+        device_class=SensorDeviceClass.PRESSURE,
+        native_unit_of_measurement="Pa",
+        value=lambda data, key: data[key],
+    ),
+    IntegrationSensorEntityDescription(
+        key="hopperdata_byid_3_value",
+        name="Consumption 24h",
+        icon="mdi:counter",
+        device_class=SensorDeviceClass.WEIGHT,
+        native_unit_of_measurement=UnitOfMass.KILOGRAMS,
+        value=lambda data, key: data[key],
+    ),
+    IntegrationSensorEntityDescription(
+        key="hopperdata_byid_7_value",
+        name="Power 10%",
+        icon="mdi:flash",
+        device_class=SensorDeviceClass.POWER,
+        native_unit_of_measurement=UnitOfPower.KILO_WATT,
+        value=lambda data, key: data[key],
+    ),
+    IntegrationSensorEntityDescription(
+        key="hopperdata_byid_8_value",
+        name="Power 100%",
+        icon="mdi:flash",
+        device_class=SensorDeviceClass.POWER,
+        native_unit_of_measurement=UnitOfPower.KILO_WATT,
+        value=lambda data, key: data[key],
+    ),
+    IntegrationSensorEntityDescription(
+        key="frontdata_hopperdistance_value",
+        name="Hopper Distance",
+        icon="mdi:tape-measure",
+        device_class=None,
+        native_unit_of_measurement=PERCENTAGE,
         value=lambda data, key: data[key],
     ),
 )
