@@ -11,19 +11,26 @@ import voluptuous as vol
 from homeassistant.components.number import NumberEntityDescription
 from homeassistant.components.sensor import SensorEntityDescription, dataclass
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_PASSWORD, CONF_USERNAME, Platform
+from homeassistant.const import CONF_PASSWORD, CONF_SCAN_INTERVAL, CONF_USERNAME, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
-from .const import DOMAIN
+from .const import (
+    CONF_API_VARIANT,
+    CONF_SCREEN,
+    DEFAULT_API_VARIANT,
+    DEFAULT_SCAN_INTERVAL,
+    DEFAULT_SCREEN,
+    DOMAIN,
+)
 from .stokercloud_api import Client as StokerCloudClient
 
 _LOGGER = logging.getLogger(__name__)
 
 CONFIG_SCHEMA = vol.Schema({DOMAIN: vol.Schema({})}, extra=vol.ALLOW_EXTRA)
 
-PLATFORMS: list[Platform] = [Platform.NUMBER, Platform.SENSOR]
+PLATFORMS: list[Platform] = [Platform.BUTTON, Platform.NUMBER, Platform.SENSOR]
 
 
 async def async_setup(hass: HomeAssistant, config: dict):
@@ -37,10 +44,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     """Set up Stokercloud from a config entry."""
     nbe_user = entry.data[CONF_USERNAME]
     nbe_pass = entry.data[CONF_PASSWORD]
-    stokerCloud = StokerCloudClient(nbe_user, nbe_pass)
+    api_variant = entry.data.get(CONF_API_VARIANT, DEFAULT_API_VARIANT)
+    screen = entry.data.get(CONF_SCREEN, DEFAULT_SCREEN)
+    scan_interval = entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
+    stokerCloud = StokerCloudClient(
+        nbe_user,
+        nbe_pass,
+        api_variant=api_variant,
+        screen=screen,
+    )
 
     # Fetch initial data so we have data when entities subscribe
-    coordinator = IntegrationCoordinator(hass, stokerCloud, nbe_user, 60)
+    coordinator = IntegrationCoordinator(hass, stokerCloud, nbe_user, scan_interval)
 
     # 🔑 Load persisted data from disk
     await coordinator.async_load()
@@ -97,7 +112,7 @@ class IntegrationCoordinator(DataUpdateCoordinator):
             # Name of the data. For logging purposes.
             name=f"StokerCloud coordinator for '{alias}'",
             # Polling interval. Will only be polled if there are subscribers.
-            update_interval=timedelta(seconds=15),
+            update_interval=timedelta(seconds=pollinterval),
         )
 
         self.store = Store(hass, 1, "stokercloud_data.json")
@@ -128,8 +143,9 @@ class IntegrationCoordinator(DataUpdateCoordinator):
 
             return controller_data
 
-        except:
-            _LOGGER.error("Stokercloud _async_update_data failed")
+        except Exception as err:
+            _LOGGER.error("Stokercloud _async_update_data failed: %s", err)
+            raise
 
 
 @dataclass(frozen=True, kw_only=True)

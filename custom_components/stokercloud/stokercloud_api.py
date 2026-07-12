@@ -2,9 +2,9 @@ import decimal
 from enum import Enum
 import json
 import logging
+import re
 import time
-from urllib import request
-from urllib.parse import urljoin
+from urllib.parse import urlencode, urljoin
 
 import aiohttp
 
@@ -13,50 +13,101 @@ import aiohttp
 logger = logging.getLogger(__name__)
 
 
+def _sanitize_alias(value) -> str:
+    alias = re.sub(r"[^0-9A-Za-z]+", "_", str(value)).strip("_")
+    return alias.lower()
+
+
 class TokenInvalid(Exception):
     pass
 
 
 class Client:
-    BASE_URL = "http://www.stokercloud.dk/"
+    BASE_URL = "https://stokercloud.dk/"
 
-    def __init__(self, name: str, password: str = None, cache_time_seconds: int = 10):
+    def __init__(
+        self,
+        name: str,
+        password: str = None,
+        cache_time_seconds: int = 10,
+        api_variant: str = "v2",
+        screen: str | None = None,
+    ):
         self.name = name
         self.password = password
         self.token = None
         self.state = None
         self.last_fetch = None
         self.cache_time_seconds = cache_time_seconds
+        self.api_variant = api_variant
+        self.screen = screen
+        if self.api_variant == "v16bck":
+            self._read_prefix = "v16bck/dataout2"
+            self._write_prefix = "v16bckbeta/dataout2"
+        else:
+            self._read_prefix = "v2/dataout2"
+            self._write_prefix = "v2/dataout2"
+
+    @staticmethod
+    def _token_expired_payload(data):
+        if not isinstance(data, (dict, list)):
+            return False
+        return "tokenexpired" in json.dumps(data).lower()
+
+    def _build_url(self, path: str, params: dict | None = None, include_token: bool = True):
+        query: dict = {}
+        if params:
+            query.update(params)
+        if include_token:
+            if self.token is None:
+                raise TokenInvalid()
+            query["token"] = self.token
+
+        if query:
+            return urljoin(self.BASE_URL, f"{path}?{urlencode(query)}")
+        return urljoin(self.BASE_URL, path)
 
     async def refresh_token(self):
         async with aiohttp.ClientSession() as session:
-            url = urljoin(
-                self.BASE_URL,
-                "v2/dataout2/login.php?user="
-                + self.name
-                + "&password="
-                + self.password,
+            url = self._build_url(
+                f"{self._read_prefix}/login.php",
+                {
+                    "user": self.name,
+                    "password": self.password,
+                },
+                include_token=False,
             )
             async with session.get(url) as response:
                 data = await response.json()
                 self.token = data["token"]  # actual token
                 self.state = data["credentials"]  # readonly
 
-    async def make_request(self, url, *args, **kwargs):
-        try:
-            if self.token is None:
-                raise TokenInvalid()
-            absolute_url = urljoin(self.BASE_URL, "%s?token=%s" % (url, self.token))
-            logger.debug(absolute_url)
-            async with aiohttp.ClientSession() as session:
-                async with session.get(absolute_url) as response:
-                    return await response.json()
-        except TokenInvalid:
+    async def make_request(self, path, params: dict | None = None, retries: int = 1):
+        if self.token is None:
             await self.refresh_token()
-            return await self.make_request(url, *args, **kwargs)
+
+        absolute_url = self._build_url(path, params=params)
+        logger.debug(absolute_url)
+
+        async with aiohttp.ClientSession() as session:
+            async with session.get(absolute_url) as response:
+                data = await response.json()
+
+        if self._token_expired_payload(data):
+            if retries <= 0:
+                raise TokenInvalid("Token expired and reauth failed")
+            await self.refresh_token()
+            return await self.make_request(path, params=params, retries=retries - 1)
+
+        return data
 
     async def get_controller_data(self):
-        self.cached_data = await self.make_request("v2/dataout2/controllerdata2.php")
+        params = {}
+        if self.api_variant == "v16bck" and self.screen:
+            params["screen"] = self.screen
+        self.cached_data = await self.make_request(
+            f"{self._read_prefix}/controllerdata2.php", params=params
+        )
         self.last_fetch = time.time()
 
     async def controller_data(self):
@@ -76,11 +127,16 @@ class Client:
         return self.flatten_json(self.cached_data)
 
     async def update_controller_value(self, menu, name, value):
-        urlPart = f"v2/dataout2/updatevalue.php?token={self.token}&menu={menu}&name={name}&value={value}"
-        res = await self.make_request(urlPart)
+        res = await self.make_request(
+            f"{self._write_prefix}/updatevalue.php",
+            params={
+                "menu": menu,
+                "name": name,
+                "value": value,
+            },
+        )
 
-        retval = Value(res["updated_value"], Unit.KILO_GRAM)
-        return retval
+        return res.get("updated_value", value)
 
     def flatten_json(self, jsonIn):
         out = {}
@@ -93,6 +149,14 @@ class Client:
                 i = 0
                 for a in x:
                     flatten(a, name + str(i) + "_")
+                    if isinstance(a, dict) and "id" in a:
+                        alias = _sanitize_alias(a["id"])
+                        if alias:
+                            for field, value in a.items():
+                                if isinstance(value, (dict, list)):
+                                    continue
+                                out[f"{name}byid_{alias}_{field}"] = value
+                                out[f"{name}{alias}_{field}"] = value
                     i += 1
             else:
                 out[name[:-1]] = x
