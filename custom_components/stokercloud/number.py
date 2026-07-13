@@ -76,8 +76,19 @@ class IntegrationNumber(CoordinatorEntity, NumberEntity, RestoreEntity):
             self._attr_native_value = float(last_state.state)
         else:
             # FIRST TIME ONLY
-            value = self.coordinator.data[self.entity_description.key]
-            self._attr_native_value = value
+            value = self.coordinator.data.get(self.entity_description.key)
+            if value is None:
+                value = self.entity_description.default_value
+
+            if value is not None:
+                self._attr_native_value = value
+
+            if (
+                self.entity_description.key.startswith("internal")
+                and self._attr_native_value is not None
+            ):
+                self.coordinator.data[self.entity_description.key] = self._attr_native_value
+                await self.coordinator.async_save()
 
     @property
     def device_info(self):
