@@ -8,6 +8,12 @@ This integration focuses on robust cloud polling with model-tolerant field mappi
 
 ## Changelog
 
+### 1.2.2
+
+- Fixed startup crash in number entities when `internaldata_pellet_energy_per_kg` is missing from coordinator data.
+- Added safe initialization fallback to entity default value when no restored state or cloud value is available.
+- Persist initialized internal number values to storage during startup so subsequent restarts have stable defaults.
+
 ### 1.2.1
 
 - Reduced log noise for missing optional cloud keys by changing repeated warnings to one-time debug messages per key.
