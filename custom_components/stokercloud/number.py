@@ -1,3 +1,5 @@
+import logging
+
 from homeassistant.components.number import (
     NumberDeviceClass,
     NumberEntity,
@@ -7,11 +9,14 @@ from homeassistant.components.number import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import UnitOfEnergy, UnitOfMass
-from homeassistant.core import _LOGGER, HomeAssistant
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import IntegrationNumberEntityDescription
 from .const import DOMAIN, MANUFACTURER, MODEL
+
+_LOGGER = logging.getLogger(__name__)
+_MISSING_KEYS_LOGGED: set[str] = set()
 
 
 async def async_setup_entry(
@@ -127,14 +132,19 @@ class IntegrationNumber(CoordinatorEntity, NumberEntity, RestoreEntity):
         if self.entity_description.key in self.coordinator.data:
             val = self.coordinator.data[self.entity_description.key]
 
+            _MISSING_KEYS_LOGGED.discard(self.entity_description.key)
+
             self._attr_native_value = val
 
             data_available = True
             self._attr_available = data_available
         else:
-            _LOGGER.warning(
-                f"The item {self.entity_description.key} is not returned from the 'cloud'"
-            )
+            if self.entity_description.key not in _MISSING_KEYS_LOGGED:
+                _LOGGER.debug(
+                    "The item %s is not returned from the 'cloud'",
+                    self.entity_description.key,
+                )
+                _MISSING_KEYS_LOGGED.add(self.entity_description.key)
 
         # Only call async_write_ha_state if the state has changed
         if data_available:
