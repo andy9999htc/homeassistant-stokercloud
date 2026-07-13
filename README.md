@@ -8,6 +8,11 @@ This integration focuses on robust cloud polling with model-tolerant field mappi
 
 ## Changelog
 
+### 1.2.1
+
+- Reduced log noise for missing optional cloud keys by changing repeated warnings to one-time debug messages per key.
+- Fixed number platform logger namespace so integration logs are emitted from `custom_components.stokercloud.number` instead of `homeassistant.core`.
+
 ### 1.2.0
 
 - Added configurable API variant support (`v2` and `v16bck`) with `v16bckbeta` write handling.

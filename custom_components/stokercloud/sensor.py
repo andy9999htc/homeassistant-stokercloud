@@ -24,6 +24,7 @@ from . import IntegrationCoordinator, IntegrationSensorEntityDescription
 from .const import DOMAIN, LNG_STATE_MAP, MANUFACTURER, MODEL, STATE_STATE
 
 _LOGGER = logging.getLogger(__name__)
+_MISSING_KEYS_LOGGED: set[str] = set()
 
 MIN_TIME_BETWEEN_UPDATES = datetime.timedelta(minutes=1)
 
@@ -100,6 +101,8 @@ class StokerCloudSensor(CoordinatorEntity, SensorEntity):
         if self.entity_description.key in self.coordinator.data:
             val = self.coordinator.data[self.entity_description.key]
 
+            _MISSING_KEYS_LOGGED.discard(self.entity_description.key)
+
             if "state" in self.entity_description.key:
                 if isinstance(val, str) and val in LNG_STATE_MAP:
                     self._attr_native_value = LNG_STATE_MAP[val]
@@ -115,9 +118,12 @@ class StokerCloudSensor(CoordinatorEntity, SensorEntity):
             data_available = True
             self._attr_available = data_available
         else:
-            _LOGGER.warning(
-                f"The item {self.entity_description.key} is not returned from the 'cloud'"
-            )
+            if self.entity_description.key not in _MISSING_KEYS_LOGGED:
+                _LOGGER.debug(
+                    "The item %s is not returned from the 'cloud'",
+                    self.entity_description.key,
+                )
+                _MISSING_KEYS_LOGGED.add(self.entity_description.key)
 
         # Only call async_write_ha_state if the state has changed
         if data_available:
