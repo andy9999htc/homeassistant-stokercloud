@@ -8,23 +8,23 @@ This integration focuses on robust cloud polling with model-tolerant field mappi
 
 ## Changelog
 
-### 1.2.3
+### v1.2.3
 
 - Fixed Home Assistant startup compatibility by importing `dataclass` from the Python standard library instead of `homeassistant.components.sensor`.
 - Fixed the number platform callback import for the latest Home Assistant APIs.
 
-### 1.2.2
+### v1.2.2
 
 - Fixed startup crash in number entities when `internaldata_pellet_energy_per_kg` is missing from coordinator data.
 - Added safe initialization fallback to entity default value when no restored state or cloud value is available.
 - Persist initialized internal number values to storage during startup so subsequent restarts have stable defaults.
 
-### 1.2.1
+### v1.2.1
 
 - Reduced log noise for missing optional cloud keys by changing repeated warnings to one-time debug messages per key.
 - Fixed number platform logger namespace so integration logs are emitted from `custom_components.stokercloud.number` instead of `homeassistant.core`.
 
-### 1.2.0
+### v1.2.0
 
 - Added configurable API variant support (`v2` and `v16bck`) with `v16bckbeta` write handling.
 - Added configurable `screen` selector and polling interval via config flow.
@@ -35,7 +35,7 @@ This integration focuses on robust cloud polling with model-tolerant field mappi
 - Added standalone API test scripts and unit tests for mapping/request behavior.
 - Expanded documentation with installation, configuration, entities, testing, and troubleshooting details.
 
-### 1.1.1
+### v1.1.1
 
 - Original integration version by [KristianOellegaard](https://github.com/KristianOellegaard/homeassistant-stokercloud/commits?author=KristianOellegaard).
 
