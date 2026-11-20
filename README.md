@@ -8,6 +8,10 @@ This integration focuses on robust cloud polling with model-tolerant field mappi
 
 ## Changelog
 
+### v1.2.4
+
+- Fixed number platform startup by importing `RestoreEntity` from `homeassistant.helpers.restore_state` instead of `homeassistant.components.number`.
+
 ### v1.2.3
 
 - Fixed Home Assistant startup compatibility by importing `dataclass` from the Python standard library instead of `homeassistant.components.sensor`.
