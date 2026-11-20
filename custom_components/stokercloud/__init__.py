@@ -1,7 +1,7 @@
 """The Stokercloud integration."""
 
 import asyncio
-from dataclasses import field
+from dataclasses import dataclass, field
 from datetime import timedelta
 import logging
 from typing import Any
@@ -9,7 +9,7 @@ from typing import Any
 import voluptuous as vol
 
 from homeassistant.components.number import NumberEntityDescription
-from homeassistant.components.sensor import SensorEntityDescription, dataclass
+from homeassistant.components.sensor import SensorEntityDescription
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_PASSWORD, CONF_SCAN_INTERVAL, CONF_USERNAME, Platform
 from homeassistant.core import HomeAssistant

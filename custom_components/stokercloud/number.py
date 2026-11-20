@@ -5,11 +5,10 @@ from homeassistant.components.number import (
     NumberEntity,
     NumberMode,
     RestoreEntity,
-    callback,
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import UnitOfEnergy, UnitOfMass
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import IntegrationNumberEntityDescription
@@ -49,7 +48,7 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
         self.async_write_ha_state()
 
 
-class IntegrationNumber(CoordinatorEntity, NumberEntity, RestoreEntity):
+class IntegrationNumber(CoordinatorEntity, NumberEntity):
     def __init__(
         self,
         client,

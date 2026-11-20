@@ -8,6 +8,11 @@ This integration focuses on robust cloud polling with model-tolerant field mappi
 
 ## Changelog
 
+### 1.2.3
+
+- Fixed Home Assistant startup compatibility by importing `dataclass` from the Python standard library instead of `homeassistant.components.sensor`.
+- Fixed the number platform callback import for the latest Home Assistant APIs.
+
 ### 1.2.2
 
 - Fixed startup crash in number entities when `internaldata_pellet_energy_per_kg` is missing from coordinator data.
